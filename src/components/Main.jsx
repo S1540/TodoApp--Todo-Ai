@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, X, Sparkles } from "lucide-react";
+import { Plus, Trash2, X, Sparkles, Loader } from "lucide-react";
 import { EllipsisVertical } from "lucide-react";
 import { MessageCircleX } from "lucide-react";
 import Lottie from "lottie-react";
 import animationData from "../assets/Empty red.json";
+const API_URL = import.meta.env.VITE_API_URL;
+console.log(API_URL);
 
 const Main = () => {
   const [time, setTime] = useState(new Date());
@@ -14,6 +16,7 @@ const Main = () => {
   const [editIndex, setEditIndex] = useState(null);
   const [editID, setEditID] = useState(null);
   const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -33,26 +36,25 @@ const Main = () => {
       let response, data;
 
       if (editID !== null) {
-        response = await fetch(
-          `http://localhost:5000/api/edit-task/${editID}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ task, date }),
-          }
-        );
+        response = await fetch(`${API_URL}/api/edit-task/${editID}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task, date }),
+        });
         data = await response.json();
         setTasks(tasks.map((t) => (t._id === editID ? data.data : t)));
         setEditID(null);
         setStatus(data.message);
       } else {
         // Add new task
-        response = await fetch("http://localhost:5000/api/add-task", {
+        setLoading(true);
+        response = await fetch(`${API_URL}/api/add-task`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ task, date }),
         });
         data = await response.json();
+        setLoading(false);
         console.log(data.message);
         setTasks([...tasks, data.data]);
       }
@@ -63,14 +65,13 @@ const Main = () => {
   };
 
   const handleDeleteTask = async (_id) => {
-    const deleteItem = await fetch(
-      `http://localhost:5000/api/delete-task/${_id}`,
-      {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    setLoading(true);
+    const deleteItem = await fetch(`${API_URL}/api/delete-task/${_id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
     const data = await deleteItem.json();
+    setLoading(false);
     setTasks((prev) => prev.filter((item) => item._id !== _id));
     setStatus(data.message);
   };
@@ -130,60 +131,77 @@ const Main = () => {
             </div>
 
             {/* Task Input Section */}
-            <div className="flex flex-col gap-3">
-              {editIndex !== null && (
-                <div className="bg-blue-500/20 border border-blue-400/50 rounded-md px-3 py-2 flex items-center justify-between">
-                  <span className="text-sm text-blue-300">Editing Task...</span>
+            <div className="relative h-auto w-full ">
+              <div
+                className={`flex flex-col gap-3 ${
+                  loading ? "opacity-50 blur-sm " : ""
+                } `}
+              >
+                {editIndex !== null && (
+                  <div className="bg-blue-500/20 border border-blue-400/50 rounded-md px-3 py-2 flex items-center justify-between">
+                    <span className="text-sm text-blue-300">
+                      Editing Task...
+                    </span>
+                    <button
+                      onClick={() => {
+                        setEditIndex(null);
+                        setTask("");
+                        setDate("");
+                      }}
+                      className="text-blue-300 hover:text-white"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="text"
+                  value={task}
+                  onChange={(e) => setTask(e.target.value.toUpperCase())}
+                  placeholder="What do you want to accomplish?"
+                  className="border border-gray-600/50 rounded-md px-4 py-3 outline-none w-full bg-white/5 backdrop-blur-md shadow-lg text-gray-200 placeholder:text-gray-500 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/20 transition-all"
+                />
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="border border-gray-600/50 rounded-md px-4 py-3 outline-none w-full bg-white/5 backdrop-blur-md shadow-lg text-gray-300 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/20 transition-all"
+                />
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-2">
                   <button
-                    onClick={() => {
-                      setEditIndex(null);
-                      setTask("");
-                      setDate("");
-                    }}
-                    className="text-blue-300 hover:text-white"
+                    onClick={handleAddTask}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 backdrop-blur-md shadow-lg border border-blue-400/30 transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 active:scale-95 font-medium"
                   >
-                    <X size={18} />
+                    <Plus size={20} />
+                    <span>
+                      {editIndex !== null ? "Update Task" : "Add Task"}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setTasks([])}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-gradient-to-r from-red-600/80 to-red-500/80 hover:from-red-500 hover:to-red-400 backdrop-blur-md shadow-lg border border-red-400/30 transition-all duration-300 ease-in-out hover:scale-105 active:scale-95 font-medium cursor-pointer"
+                  >
+                    <Trash2 size={20} />
+                    <span>Clear All</span>
                   </button>
                 </div>
-              )}
-              <input
-                type="text"
-                value={task}
-                onChange={(e) => setTask(e.target.value.toUpperCase())}
-                placeholder="What do you want to accomplish?"
-                className="border border-gray-600/50 rounded-md px-4 py-3 outline-none w-full bg-white/5 backdrop-blur-md shadow-lg text-gray-200 placeholder:text-gray-500 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/20 transition-all"
-              />
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="border border-gray-600/50 rounded-md px-4 py-3 outline-none w-full bg-white/5 backdrop-blur-md shadow-lg text-gray-300 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/20 transition-all"
-              />
+                <div
+                  className={`bg-green-600/50 py-1 rounded-md text-center ${
+                    status ? "block" : "hidden"
+                  }`}
+                >
+                  <p>{status}</p>
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 mt-2">
-                <button
-                  onClick={handleAddTask}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 backdrop-blur-md shadow-lg border border-blue-400/30 transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 active:scale-95 font-medium"
-                >
-                  <Plus size={20} />
-                  <span>{editIndex !== null ? "Update Task" : "Add Task"}</span>
-                </button>
-                <button
-                  onClick={() => setTasks([])}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-gradient-to-r from-red-600/80 to-red-500/80 hover:from-red-500 hover:to-red-400 backdrop-blur-md shadow-lg border border-red-400/30 transition-all duration-300 ease-in-out hover:scale-105 active:scale-95 font-medium cursor-pointer"
-                >
-                  <Trash2 size={20} />
-                  <span>Clear All</span>
-                </button>
+                {/* loader */}
               </div>
-              <div
-                className={`bg-green-600/50 py-1 rounded-md text-center ${
-                  status ? "block" : "hidden"
-                }`}
-              >
-                <p>{status}</p>
-              </div>
+              {loading && (
+                <div className="absolute top-0 left-0 right-0 z-50 text-7xl w-full h-full flex items-center justify-center ">
+                  <Loader size={60} className="animate-spin" />
+                </div>
+              )}
             </div>
 
             {/* Stats or Additional Info */}
