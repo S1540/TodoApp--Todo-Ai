@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Sparkles, Send, Loader2 } from "lucide-react";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const TodoAi = () => {
   const [messages, setMessages] = useState([]);
@@ -18,7 +19,7 @@ const TodoAi = () => {
       const allMessages = [...messages, userMessage];
 
       const res = await fetch(
-        "http://localhost:5000/api/todo-ai/llama-3.3-70b-versatile",
+        `${API_URL}/api/todo-ai/llama-3.3-70b-versatile`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
