@@ -5,6 +5,16 @@ const router = express.Router();
 const { Task } = require("../db");
 const { model } = require("mongoose");
 
+// get all userTask
+router.get("/api/get-task", async (req, res) => {
+  try {
+    const response = await Task.find();
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 //Add User Task
 router.post("/api/add-task", async (req, res) => {
   try {

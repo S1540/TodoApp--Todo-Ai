@@ -23,7 +23,16 @@ const Main = () => {
       setTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
-  });
+  }, []);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const response = await fetch(`${API_URL}/api/get-task`);
+      const data = await response.json();
+      setTasks(data);
+    };
+    fetchTasks();
+  }, []);
 
   useEffect(() => {
     setTimeout(() => {
